@@ -480,6 +480,11 @@
               <FileType>1</FileType>
               <FilePath>../MotorFoc/foc_speed.c</FilePath>
             </File>
+            <File>
+              <FileName>foc_position.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/foc_position.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

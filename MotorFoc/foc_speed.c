@@ -62,6 +62,19 @@ uint8_t FOC_Speed_IsEnabled(void)
     return s_enabled;
 }
 
+void FOC_Speed_SetTargetRpm(float rpm)
+{
+    if (rpm > FOC_SPEED_MAX_RPM)
+    {
+        rpm = FOC_SPEED_MAX_RPM;
+    }
+    else if (rpm < -FOC_SPEED_MAX_RPM)
+    {
+        rpm = -FOC_SPEED_MAX_RPM;
+    }
+    s_target_ref_mech = rpm;
+}
+
 void FOC_Speed_IncreaseTarget(void)
 {
     s_target_ref_mech += FOC_SPEED_STEP;

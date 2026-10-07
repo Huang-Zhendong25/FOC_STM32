@@ -1,7 +1,7 @@
 #include "vofa_app.h"
 #include "usart.h"
 
-#define VOFA_CHANNEL_COUNT   16
+#define VOFA_CHANNEL_COUNT   19
 #define VOFA_FRAME_SIZE      (VOFA_CHANNEL_COUNT * 4U + 4U)
 
 static uint8_t  s_tx_buf[VOFA_FRAME_SIZE];
@@ -60,12 +60,15 @@ void VOFA_Task(CurrentSense_t *cur, Encoder_t *enc)
     VOFA_FloatToBytes(FOC_Current_GetIqRef(), &s_tx_buf[52]);
     VOFA_FloatToBytes(FOC_Speed_GetRefRpm(), &s_tx_buf[56]);
     VOFA_FloatToBytes(FOC_Speed_GetFbRpm(), &s_tx_buf[60]);
+    VOFA_FloatToBytes((float)FOC_Position_GetTarget(), &s_tx_buf[64]);
+    VOFA_FloatToBytes((float)FOC_Position_GetFbk(), &s_tx_buf[68]);
+    VOFA_FloatToBytes(FOC_Position_GetError(), &s_tx_buf[72]);
 
     /* JustFloat tail: 00 00 80 7f */
-    s_tx_buf[64] = 0x00U;
-    s_tx_buf[65] = 0x00U;
-    s_tx_buf[66] = 0x80U;
-    s_tx_buf[67] = 0x7fU;
+    s_tx_buf[76] = 0x00U;
+    s_tx_buf[77] = 0x00U;
+    s_tx_buf[78] = 0x80U;
+    s_tx_buf[79] = 0x7fU;
 
     s_tx_busy = 1U;
     if (HAL_UART_Transmit_IT(&huart1, s_tx_buf, VOFA_FRAME_SIZE) != HAL_OK)

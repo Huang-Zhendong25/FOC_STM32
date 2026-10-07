@@ -6,6 +6,7 @@
 #include "encoder.h"
 #include "foc_current.h"
 #include "foc_speed.h"
+#include "foc_position.h"
 
 #define VOFA_SEND_PERIOD_MS   20
 

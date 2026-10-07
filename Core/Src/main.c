@@ -30,6 +30,7 @@
 #include "foc.h"
 #include "foc_current.h"
 #include "foc_speed.h"
+#include "foc_position.h"
 #include "key_app.h"
 #include "current_sense.h"
 #include "clarke.h"
@@ -140,9 +141,10 @@ int main(void)
 
   /* Injected ADC remains in polling mode; current loop reads it in TIM1 update interrupt */
 
-  /* Initialize current-loop and speed-loop controllers */
+  /* Initialize current-loop, speed-loop and position-loop controllers */
   FOC_Current_Init();
   FOC_Speed_Init();
+  FOC_Position_Init();
 
   /* Initialize keys; PWM stays disabled until KEY1 is pressed */
   KEY_AppInit();
@@ -161,30 +163,33 @@ int main(void)
 
     KEY_AppScan();
 
-    /* KEY1: enable speed loop */
-    if ((KEY_AppGetSingleClick(KEY_APP_KEY1) == 1U) && (FOC_Speed_IsEnabled() == 0U))
+    /* KEY1: enable position loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY1) == 1U) && (FOC_Position_IsEnabled() == 0U))
     {
-        FOC_Speed_Enable();
+        FOC_Position_Enable();
     }
 
-    /* KEY2: disable speed loop */
-    if ((KEY_AppGetSingleClick(KEY_APP_KEY2) == 1U) && (FOC_Speed_IsEnabled() == 1U))
+    /* KEY2: disable position loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY2) == 1U) && (FOC_Position_IsEnabled() == 1U))
     {
-        FOC_Speed_Disable();
+        FOC_Position_Disable();
     }
 
-    /* KEY3: single click increases speed target, double click decreases it */
+    /* KEY3: single click increases position target, double click decreases it */
     if (KEY_AppGetSingleClick(KEY_APP_KEY3) == 1U)
     {
-        FOC_Speed_IncreaseTarget();
+        FOC_Position_IncreaseTarget();
     }
     if (KEY_AppGetDoubleClick(KEY_APP_KEY3) == 1U)
     {
-        FOC_Speed_DecreaseTarget();
+        FOC_Position_DecreaseTarget();
     }
 
     /* Read encoder angle and speed at 1 kHz for debug and VOFA */
     Encoder_Update(&g_encoder);
+
+    /* Position loop runs at 1 kHz and updates the speed-loop target */
+    FOC_Position_Run();
 
     /* Send data to VOFA+ without blocking the control loop */
     VOFA_Task(&g_current, &g_encoder);

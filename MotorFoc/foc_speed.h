@@ -16,6 +16,7 @@ void FOC_Speed_Init(void);
 void FOC_Speed_Enable(void);
 void FOC_Speed_Disable(void);
 uint8_t FOC_Speed_IsEnabled(void);
+void FOC_Speed_SetTargetRpm(float rpm);
 void FOC_Speed_IncreaseTarget(void);
 void FOC_Speed_DecreaseTarget(void);
 void FOC_Speed_Run(void);
