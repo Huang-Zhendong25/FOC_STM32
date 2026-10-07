@@ -147,6 +147,7 @@ int main(void)
     FOC_OpenLoop_Run();
 
     HAL_Delay(1);
+  }
   /* USER CODE END 3 */
 }
 
