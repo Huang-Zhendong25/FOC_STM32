@@ -16,8 +16,10 @@
 foc_stm32/
 ├── Core/          CubeMX 生成的外设初始化和主程序
 ├── Drivers/       STM32F4 HAL 库和 CMSIS
-├── App/           应用层（按键功能）
-├── MotorFoc/      FOC 算法与控制（SVPWM、开环控制）
+├── App/           应用层（按键、VOFA+ 串口输出）
+├── MotorFoc/      FOC 算法与控制（SVPWM、Clarke、开环控制）
+├── Sdrive/        底层驱动（ADC 电流采样）
+├── picture/       调试波形图片
 ├── MDK-ARM/       Keil 工程文件
 ├── STM32_FOC.ioc  CubeMX 工程配置
 └── README.md
@@ -112,9 +114,81 @@ foc_stm32/
 
 测试时请使用限流电源，并确认电机无负载或负载安全。
 
+### 阶段 2：ADC 相电流采样与 Clarke 变换
+
+阶段 2 在阶段 1 的基础上加入电流采样链，目标是得到真实三相电流和 αβ 轴电流。
+
+#### 实现了什么
+
+- ADC1 规则组采样 CH14、CH10、CH4，用于温度、母线电压和 VR。
+- ADC1 注入组采样 CH15、CH9，分别对应 U 相和 W 相电流。
+- 使用 TIM1_CH4 在 PWM 中心触发注入组采样，降低开关噪声。
+- 电流零点在 PWM 输出零矢量期间标定，再按传感器增益换算为安培。
+- 根据 `Iu + Iv + Iw = 0` 重建 V 相电流。
+- 实现等幅值 Clarke 变换，得到 `Ialpha/Ibeta`。
+- 通过 VOFA+ 非阻塞串口输出，观察三相电流和 αβ 电流波形。
+
+#### 代码分布
+
+- `Sdrive/current_sense.c/.h`：规则组 DMA、注入组启动、零点标定、电流滤波和换算。
+- `MotorFoc/clarke.c/.h`：Clarke 变换。
+- `App/vofa_app.c/.h`：VOFA+ JustFloat 非阻塞串口发送。
+- `Core/Src/main.c`：初始化顺序和主循环调度。
+
+#### PWM 中心同步 ADC 采样
+
+当前使用 STM32F407 的 ADC 注入组实现 PWM 中心同步采样：
+
+- TIM1_CH4 配置为 PWM Generation No Output，`Pulse = 4199`。
+- ADC1 注入组触发源选择 `TIM1_CC4`，上升沿触发。
+- U/W 相电流由注入组采样，Vbus 等慢速信号留在规则组连续采样。
+- 上电后先以零电压矢量启动 PWM，完成电流零点标定，再关闭 PWM 等待 KEY1。
+
+#### VOFA+ 串口输出
+
+- 波特率：115200
+- 协议：JustFloat
+- 通道顺序：Iu、Iv、Iw、Ialpha、Ibeta、Vbus
+- 每 5ms 尝试发送一帧，使用中断发送，不阻塞控制循环
+
+#### 波形对比
+
+普通 ADC 连续采样与 PWM 中心同步采样的对比如下。
+
+三相电流波形：
+
+![三相电流普通采样](picture/current_sense_abc.png)
+
+![三相电流 PWM 中心同步采样](picture/current_sense_abc_pwmcenter.png)
+
+αβ 轴电流波形：
+
+![αβ电流普通采样](picture/current_sense_alpha-beta.png)
+
+![αβ电流 PWM 中心同步采样](picture/current_sense_alpha-beta-pwmcenter.png)
+
+可以看到，PWM 中心同步采样明显减少了开关瞬间的毛刺噪声。
+
+#### 如何测试阶段 2
+
+1. 保持阶段 1 的锁轴或开环旋转测试配置。
+2. 编译烧录后，在调试器中观察 `g_current`：
+
+```text
+Iu
+Iv
+Iw
+Ialpha
+Ibeta
+Vbus
+```
+
+3. 使用 VOFA+ 查看三相电流和 αβ 电流波形。
+4. PWM 未使能时，三相电流应接近 0。
+5. 按 KEY1 进入锁轴或旋转状态后，三相电流应为正弦波，αβ 轨迹应为圆形。
+
 ## 后续阶段计划
 
-- 阶段 2：ADC 相电流采样与零点校准、Clarke 变换。
 - 阶段 3：TIM3 编码器角度读取与电角度计算。
 - 阶段 4：有感电流闭环 FOC。
 - 阶段 5：速度闭环。

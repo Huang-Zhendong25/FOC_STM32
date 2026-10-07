@@ -1,0 +1,74 @@
+#include "vofa_app.h"
+#include "usart.h"
+
+#define VOFA_CHANNEL_COUNT   6
+#define VOFA_FRAME_SIZE      (VOFA_CHANNEL_COUNT * 4U + 4U)
+
+static uint8_t  s_tx_buf[VOFA_FRAME_SIZE];
+static volatile uint8_t s_tx_busy = 0;
+static uint32_t s_last_send_tick = 0;
+
+static void VOFA_FloatToBytes(float f, uint8_t *dst)
+{
+    union
+    {
+        float    f;
+        uint32_t u;
+    } v;
+
+    v.f = f;
+    dst[0] = (uint8_t)(v.u & 0xFFU);
+    dst[1] = (uint8_t)((v.u >> 8U) & 0xFFU);
+    dst[2] = (uint8_t)((v.u >> 16U) & 0xFFU);
+    dst[3] = (uint8_t)((v.u >> 24U) & 0xFFU);
+}
+
+void VOFA_Init(void)
+{
+    s_tx_busy = 0;
+    s_last_send_tick = HAL_GetTick();
+}
+
+void VOFA_Task(CurrentSense_t *cur)
+{
+    uint32_t now = HAL_GetTick();
+    uint16_t i;
+
+    if ((now - s_last_send_tick) < VOFA_SEND_PERIOD_MS)
+    {
+        return;
+    }
+    s_last_send_tick = now;
+
+    if (s_tx_busy != 0U)
+    {
+        return;   /* previous frame still transmitting, drop this frame */
+    }
+
+    VOFA_FloatToBytes(cur->Iu, &s_tx_buf[0]);
+    VOFA_FloatToBytes(cur->Iv, &s_tx_buf[4]);
+    VOFA_FloatToBytes(cur->Iw, &s_tx_buf[8]);
+    VOFA_FloatToBytes(cur->Ialpha, &s_tx_buf[12]);
+    VOFA_FloatToBytes(cur->Ibeta, &s_tx_buf[16]);
+    VOFA_FloatToBytes(cur->Vbus, &s_tx_buf[20]);
+
+    /* JustFloat tail: 00 00 80 7f */
+    s_tx_buf[24] = 0x00U;
+    s_tx_buf[25] = 0x00U;
+    s_tx_buf[26] = 0x80U;
+    s_tx_buf[27] = 0x7fU;
+
+    s_tx_busy = 1U;
+    if (HAL_UART_Transmit_IT(&huart1, s_tx_buf, VOFA_FRAME_SIZE) != HAL_OK)
+    {
+        s_tx_busy = 0U;
+    }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        s_tx_busy = 0U;
+    }
+}

@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../MotorFoc;../App;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc;../MotorFoc;../App;../Sdrive;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -391,6 +391,31 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
+              <FileName>foc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/foc.c</FilePath>
+            </File>
+            <File>
+              <FileName>key_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/key_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>current_sense.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Sdrive/current_sense.c</FilePath>
+            </File>
+            <File>
+              <FileName>clarke.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/clarke.c</FilePath>
+            </File>
+            <File>
+              <FileName>vofa_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/vofa_app.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -429,16 +454,6 @@
               <FileName>stm32f4xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>foc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../MotorFoc/foc.c</FilePath>
-            </File>
-            <File>
-              <FileName>key_app.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../App/key_app.c</FilePath>
             </File>
           </Files>
         </Group>

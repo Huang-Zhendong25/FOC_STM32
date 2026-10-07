@@ -29,6 +29,9 @@
 
 #include "foc.h"
 #include "key_app.h"
+#include "current_sense.h"
+#include "clarke.h"
+#include "vofa_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +53,7 @@
 
 /* USER CODE BEGIN PV */
 
+CurrentSense_t g_current;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,19 +104,31 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  /* HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET); */
-  HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+  /* HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET); */
   /* HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET); */
 
-  /* Initialize FOC open-loop control and output the zero voltage vector */
+  /* Initialize FOC open-loop control and write zero voltage vector */
   FOC_OpenLoop_Init();
 
   /* Set board power and driver enable pins */
-  HAL_GPIO_WritePin(PWR_GPIO_Port, PWR_Pin, GPIO_PIN_SET);   /* power enable */
-  HAL_GPIO_WritePin(SD1_GPIO_Port, SD1_Pin, GPIO_PIN_RESET); /* driver shutdown pin enable */
+  HAL_GPIO_WritePin(PWR_GPIO_Port, PWR_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SD1_GPIO_Port, SD1_Pin, GPIO_PIN_RESET);
+
+  /* Start slow regular-group DMA and PWM-center injected current sampling */
+  CurrentSense_StartDma();
+  CurrentSense_StartInjected();
+
+  /* Briefly enable zero-vector PWM so TIM1_CH4 triggers injected ADC, then calibrate offsets */
+  FOC_OpenLoop_Enable();
+  CurrentSense_CalibrateOffset();
+  FOC_OpenLoop_Disable();
 
   /* Initialize keys; PWM stays disabled until KEY1 is pressed */
   KEY_AppInit();
+
+  /* Initialize non-blocking VOFA+ serial output */
+  VOFA_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,6 +158,13 @@ int main(void)
     {
         FOC_OpenLoop_ToggleAxis();
     }
+
+    /* Read phase currents and run Clarke transform */
+    CurrentSense_Read(&g_current);
+    Clarke_Update(&g_current);
+
+    /* Send current and voltage data to VOFA+ without blocking the control loop */
+    VOFA_Task(&g_current);
 
     /* Call every 1 ms: output zero vector when disabled, otherwise lock or rotate */
     FOC_OpenLoop_Run();
