@@ -455,6 +455,11 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Sdrive/encoder.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -31,6 +31,7 @@
 #include "key_app.h"
 #include "current_sense.h"
 #include "clarke.h"
+#include "encoder.h"
 #include "vofa_app.h"
 /* USER CODE END Includes */
 
@@ -54,6 +55,7 @@
 /* USER CODE BEGIN PV */
 
 CurrentSense_t g_current;
+Encoder_t g_encoder;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,6 +113,9 @@ int main(void)
   /* Initialize FOC open-loop control and write zero voltage vector */
   FOC_OpenLoop_Init();
 
+  /* Initialize TIM3 encoder interface */
+  Encoder_Init();
+
   /* Set board power and driver enable pins */
   HAL_GPIO_WritePin(PWR_GPIO_Port, PWR_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(SD1_GPIO_Port, SD1_Pin, GPIO_PIN_RESET);
@@ -122,6 +127,13 @@ int main(void)
   /* Briefly enable zero-vector PWM so TIM1_CH4 triggers injected ADC, then calibrate offsets */
   FOC_OpenLoop_Enable();
   CurrentSense_CalibrateOffset();
+  FOC_OpenLoop_Disable();
+
+  /* Align encoder zero to electrical angle zero by applying an alpha-axis voltage vector */
+  FOC_OpenLoop_Enable();
+  FOC_SvpwmUpdate(1.0f, 0.0f);
+  HAL_Delay(800);
+  Encoder_SetZero(&g_encoder);
   FOC_OpenLoop_Disable();
 
   /* Initialize keys; PWM stays disabled until KEY1 is pressed */
@@ -163,8 +175,11 @@ int main(void)
     CurrentSense_Read(&g_current);
     Clarke_Update(&g_current);
 
-    /* Send current and voltage data to VOFA+ without blocking the control loop */
-    VOFA_Task(&g_current);
+    /* Read encoder angle and speed */
+    Encoder_Update(&g_encoder);
+
+    /* Send current, voltage, angle and speed data to VOFA+ without blocking the control loop */
+    VOFA_Task(&g_current, &g_encoder);
 
     /* Call every 1 ms: output zero vector when disabled, otherwise lock or rotate */
     FOC_OpenLoop_Run();
