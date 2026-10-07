@@ -9,6 +9,7 @@
 
 void KEY_AppInit(void);
 void KEY_AppScan(void);
-uint8_t KEY_AppGetEvent(uint8_t keyIndex);
+uint8_t KEY_AppGetSingleClick(uint8_t keyIndex);
+uint8_t KEY_AppGetDoubleClick(uint8_t keyIndex);
 
 #endif

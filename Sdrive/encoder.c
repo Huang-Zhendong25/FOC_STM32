@@ -36,6 +36,9 @@ void Encoder_Update(Encoder_t *enc)
     enc->last_count = (int32_t)raw;
 
     mech = ((float)raw * ENCODER_TWO_PI) / (float)ENCODER_CPR;
+#if (ENCODER_DIRECTION < 0)
+    mech = ENCODER_TWO_PI - mech;
+#endif
     if (mech >= ENCODER_TWO_PI)
     {
         mech -= ENCODER_TWO_PI;
@@ -48,13 +51,34 @@ void Encoder_Update(Encoder_t *enc)
         enc->elec_angle_rad -= ENCODER_TWO_PI;
     }
 
-    /* M-method speed: rpm = delta_count / CPR * 60 / Ts. Ts = 0.001 s. */
-    inst_speed = ((float)diff * 60000.0f) / (float)ENCODER_CPR;
+    /* M-method speed: rpm = direction * delta_count / CPR * 60 / Ts. Ts = 0.001 s. */
+    inst_speed = ((float)(diff * ENCODER_DIRECTION) * 60000.0f) / (float)ENCODER_CPR;
     s_speed_filtered = ENCODER_SPEED_LPF_B * s_speed_filtered + ENCODER_SPEED_LPF_A * inst_speed;
     enc->speed_rpm = s_speed_filtered;
 }
 
 /* Call after the rotor has been aligned to electrical angle zero. */
+float Encoder_GetElecAngle(void)
+{
+    uint32_t raw = TIM3->CNT;
+    float mech = ((float)raw * ENCODER_TWO_PI) / (float)ENCODER_CPR;
+#if (ENCODER_DIRECTION < 0)
+    mech = ENCODER_TWO_PI - mech;
+#endif
+    if (mech >= ENCODER_TWO_PI)
+    {
+        mech -= ENCODER_TWO_PI;
+    }
+    float elec = mech * (float)MOTOR_POLE_PAIRS;
+
+    while (elec >= ENCODER_TWO_PI)
+    {
+        elec -= ENCODER_TWO_PI;
+    }
+
+    return elec;
+}
+
 void Encoder_SetZero(Encoder_t *enc)
 {
     TIM3->CNT = 0;

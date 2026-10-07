@@ -58,6 +58,7 @@
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart1;
+extern ADC_HandleTypeDef hadc1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -243,5 +244,10 @@ void USART1_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+void ADC_IRQHandler(void)
+{
+    HAL_ADC_IRQHandler(&hadc1);
+}
 
 /* USER CODE END 1 */

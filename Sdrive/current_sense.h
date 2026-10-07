@@ -16,8 +16,9 @@ typedef struct
 extern volatile uint16_t ADC_Value[3];
 
 void CurrentSense_StartDma(void);
-void CurrentSense_StartInjected(void);
+void CurrentSense_StartInjectedPolling(void);
+void CurrentSense_StartInjectedIT(void);
 void CurrentSense_CalibrateOffset(void);
-void CurrentSense_Read(CurrentSense_t *cur);
+void CurrentSense_UpdateFromInjected(CurrentSense_t *cur);
 
 #endif

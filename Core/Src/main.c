@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "foc.h"
+#include "foc_current.h"
 #include "key_app.h"
 #include "current_sense.h"
 #include "clarke.h"
@@ -122,7 +123,7 @@ int main(void)
 
   /* Start slow regular-group DMA and PWM-center injected current sampling */
   CurrentSense_StartDma();
-  CurrentSense_StartInjected();
+  CurrentSense_StartInjectedPolling();
 
   /* Briefly enable zero-vector PWM so TIM1_CH4 triggers injected ADC, then calibrate offsets */
   FOC_OpenLoop_Enable();
@@ -135,6 +136,12 @@ int main(void)
   HAL_Delay(800);
   Encoder_SetZero(&g_encoder);
   FOC_OpenLoop_Disable();
+
+  /* Switch injected ADC to interrupt mode for the fast current loop */
+  CurrentSense_StartInjectedIT();
+
+  /* Initialize current-loop PI controllers */
+  FOC_Current_Init();
 
   /* Initialize keys; PWM stays disabled until KEY1 is pressed */
   KEY_AppInit();
@@ -153,40 +160,37 @@ int main(void)
 
     KEY_AppScan();
 
-    /* KEY1: enable motor */
-    if ((KEY_AppGetEvent(KEY_APP_KEY1) == 1U) && (FOC_OpenLoop_IsEnabled() == 0U))
+    /* KEY1: enable current loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY1) == 1U) && (FOC_Current_IsEnabled() == 0U))
     {
-        FOC_OpenLoop_Enable();
+        FOC_Current_Enable();
     }
 
-    /* KEY2: disable motor */
-    if ((KEY_AppGetEvent(KEY_APP_KEY2) == 1U) && (FOC_OpenLoop_IsEnabled() == 1U))
+    /* KEY2: disable current loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY2) == 1U) && (FOC_Current_IsEnabled() == 1U))
     {
-        FOC_OpenLoop_Disable();
+        FOC_Current_Disable();
     }
 
-    /* KEY3: toggle lock axis (alpha / beta) */
-    if (KEY_AppGetEvent(KEY_APP_KEY3) == 1U)
+    /* KEY3: single click increases Iq, double click decreases Iq */
+    if (KEY_AppGetSingleClick(KEY_APP_KEY3) == 1U)
     {
-        FOC_OpenLoop_ToggleAxis();
+        FOC_Current_IncreaseIq();
+    }
+    if (KEY_AppGetDoubleClick(KEY_APP_KEY3) == 1U)
+    {
+        FOC_Current_DecreaseIq();
     }
 
-    /* Read phase currents and run Clarke transform */
-    CurrentSense_Read(&g_current);
-    Clarke_Update(&g_current);
-
-    /* Read encoder angle and speed */
+    /* Read encoder angle and speed at 1 kHz for debug and VOFA */
     Encoder_Update(&g_encoder);
 
     /* Send current, voltage, angle and speed data to VOFA+ without blocking the control loop */
     VOFA_Task(&g_current, &g_encoder);
 
-    /* Call every 1 ms: output zero vector when disabled, otherwise lock or rotate */
-    FOC_OpenLoop_Run();
-
     HAL_Delay(1);
-  }
   /* USER CODE END 3 */
+}
 }
 
 /**

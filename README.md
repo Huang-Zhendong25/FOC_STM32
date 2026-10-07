@@ -221,9 +221,90 @@ Vbus
 3. 在 VOFA+ 中观察角度和速度。
 4. 若角度方向与预期相反，只改角度符号或交换 A/B 接线，不要同时改两处。
 
+### 阶段 4：有感电流闭环 FOC
+
+阶段 4 在电流采样和编码器角度基础上闭合电流环，实现对 Id/Iq 的直接控制。
+
+#### 实现了什么
+
+- 新增通用 PI 控制器，带积分限幅和输出限幅。
+- 新增 Park 变换与逆 Park 变换。
+- 新增电流闭环调度，运行在 ADC 注入转换完成中断中。
+- Id 环目标固定为 0，Iq 环目标可调。
+- 使用例程电流 PI 参数作为初始值：Kp = 0.3，Ki = 1000。
+- KEY1 使能电流环，KEY2 失能电流环。
+- KEY3 单击增加 Iq_ref，双击减小 Iq_ref。
+- VOFA+ 可查看 Id、Iq、Vd、Vq、Iq_ref 等闭环变量。
+
+#### 电流闭环链路
+
+```text
+ADC 注入组读取 Iu/Iw
+→ 电流换算与滤波
+→ Clarke 得到 Ialpha/Ibeta
+→ Park 使用编码器电角度得到 Id/Iq
+→ Id PI：Id_ref = 0
+→ Iq PI：Iq_ref = 目标转矩电流
+→ 逆 Park 得到 Valpha/Vbeta
+→ SVPWM 更新 TIM1 CCR
+```
+
+#### 代码分布
+
+- `MotorFoc/pi.c/.h`：通用 PI 控制器。
+- `MotorFoc/park.c/.h`：Park 与逆 Park 变换。
+- `MotorFoc/foc_current.c/.h`：电流闭环调度和 ADC 注入完成回调。
+- `Sdrive/current_sense.c/.h`：注入组电流读取和换算。
+- `Sdrive/encoder.c/.h`：电角度读取。
+- `App/key_app.c/.h`：单击/双击按键。
+- `App/vofa_app.c/.h`：闭环变量串口输出。
+
+#### 当前 Iq 参数
+
+```text
+Iq_ref 默认值：0.2A
+Iq 单击步进：0.05A
+Iq 范围：±2.0A
+```
+
+#### VOFA+ 通道
+
+当前每帧发送 14 个 float：
+
+```text
+Iu
+Iv
+Iw
+Ialpha
+Ibeta
+Vbus
+mech_angle_rad
+elec_angle_rad
+speed_rpm
+Id
+Iq
+Vd
+Vq
+Iq_ref
+```
+
+#### 如何测试阶段 4
+
+1. 堵住电机轴，避免空载持续加速。
+2. 按 KEY1 启动电流环。
+3. 按 KEY3 单击增加 Iq_ref，双击减小 Iq_ref。
+4. 观察 VOFA+：
+
+```text
+Id 应接近 0
+Iq 应接近 Iq_ref
+```
+
+5. 如果 Iq 方向反了，修改 `Sdrive/current_sense.c` 中 U/W 电流符号，两相同时修改。
+
 ## 后续阶段计划
 
-- 阶段 4：有感电流闭环 FOC。
 - 阶段 5：速度闭环。
+- 阶段 6：位置闭环。
 
 每个阶段提交时，都会在本 README 中追加对应阶段的实现说明，并保留前面阶段的说明。

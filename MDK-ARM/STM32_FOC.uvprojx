@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../MotorFoc;../App;../Sdrive;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc;../MotorFoc;../App;../Sdrive;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;..\MotorFoc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -459,6 +459,21 @@
               <FileName>encoder.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Sdrive/encoder.c</FilePath>
+            </File>
+            <File>
+              <FileName>pi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/pi.c</FilePath>
+            </File>
+            <File>
+              <FileName>park.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/park.c</FilePath>
+            </File>
+            <File>
+              <FileName>foc_current.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/foc_current.c</FilePath>
             </File>
           </Files>
         </Group>
