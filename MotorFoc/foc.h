@@ -3,10 +3,10 @@
 
 #include "main.h"
 
-/* ??1 ?????? */
-#define FOC_STAGE1_LOCK_TEST   1       /* 1 = ?????0 = ?????? */
-#define FOC_OPENLOOP_U_AMP     1.0f    /* ?? ????????? V */
-#define FOC_OPENLOOP_ELEC_HZ   1.0f    /* ?????????? Hz */
+/* Stage 1 open-loop test configuration */
+#define FOC_STAGE1_LOCK_TEST   1       /* 1 = lock test, 0 = open-loop rotation */
+#define FOC_OPENLOOP_U_AMP     1.0f    /* alpha/beta voltage vector magnitude in V */
+#define FOC_OPENLOOP_ELEC_HZ   1.0f    /* open-loop electrical frequency in Hz */
 
 void FOC_MotorPwmStart(void);
 void FOC_MotorPwmStop(void);

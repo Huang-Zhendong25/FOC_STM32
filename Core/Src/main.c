@@ -100,18 +100,18 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  //HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+  /* HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET); */
   HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-  //HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+  /* HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET); */
 
-  /* 初始化 FOC 开环控制：先把三路 CCR 放到 50% 中点（零电压矢量） */
+  /* Initialize FOC open-loop control and output the zero voltage vector */
   FOC_OpenLoop_Init();
 
-  /* 确认板级电源/驱动使能脚状态 */
-  HAL_GPIO_WritePin(PWR_GPIO_Port, PWR_Pin, GPIO_PIN_SET);   /* 电源使能 */
-  HAL_GPIO_WritePin(SD1_GPIO_Port, SD1_Pin, GPIO_PIN_RESET); /* SD1 关断脚使能 */
+  /* Set board power and driver enable pins */
+  HAL_GPIO_WritePin(PWR_GPIO_Port, PWR_Pin, GPIO_PIN_SET);   /* power enable */
+  HAL_GPIO_WritePin(SD1_GPIO_Port, SD1_Pin, GPIO_PIN_RESET); /* driver shutdown pin enable */
 
-  /* 初始化按键，初始不使能 PWM，等待 KEY1 启动 */
+  /* Initialize keys; PWM stays disabled until KEY1 is pressed */
   KEY_AppInit();
   /* USER CODE END 2 */
 
@@ -125,25 +125,25 @@ int main(void)
 
     KEY_AppScan();
 
-    /* KEY1：使能电机 */
+    /* KEY1: enable motor */
     if ((KEY_AppGetEvent(KEY_APP_KEY1) == 1U) && (FOC_OpenLoop_IsEnabled() == 0U))
     {
         FOC_OpenLoop_Enable();
     }
 
-    /* KEY2：失能电机 */
+    /* KEY2: disable motor */
     if ((KEY_AppGetEvent(KEY_APP_KEY2) == 1U) && (FOC_OpenLoop_IsEnabled() == 1U))
     {
         FOC_OpenLoop_Disable();
     }
 
-    /* KEY3：切换锁轴方向（α 轴 / β 轴） */
+    /* KEY3: toggle lock axis (alpha / beta) */
     if (KEY_AppGetEvent(KEY_APP_KEY3) == 1U)
     {
         FOC_OpenLoop_ToggleAxis();
     }
 
-    /* 每个 1ms 调用一次：未使能时保持零矢量，使能后输出锁轴或旋转电压矢量 */
+    /* Call every 1 ms: output zero vector when disabled, otherwise lock or rotate */
     FOC_OpenLoop_Run();
 
     HAL_Delay(1);

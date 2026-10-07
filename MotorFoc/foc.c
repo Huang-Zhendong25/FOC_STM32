@@ -2,19 +2,19 @@
 #include "tim.h"
 #include <math.h>
 
-/* SVPWM ????????? TIM1 ???? */
+/* SVPWM per-unit and timer period constants, matching TIM1 configuration */
 #define FOC_SVPWM_KM_BACKW     0.1443376f          /* 1 / (12V * sqrt(3)/3) */
 #define FOC_TIM1_PERIOD        8400
 #define FOC_TIM1_PERIOD_HALF   (FOC_TIM1_PERIOD / 2)
 
-static uint8_t s_openloop_enabled = 0;   /* 0 = PWM ????1 = ??? */
-static uint8_t s_lock_axis = 0;          /* 0 = ? ????1 = ? ??? */
-static float   s_theta_deg = 0.0f;       /* ????????????? */
+static uint8_t s_openloop_enabled = 0;   /* 0 = PWM disabled, 1 = PWM enabled */
+static uint8_t s_lock_axis = 0;          /* 0 = lock to alpha axis, 1 = lock to beta axis */
+static float   s_theta_deg = 0.0f;       /* open-loop electrical angle in degrees */
 
-/* ?? TIM1 ???/?? PWM ????? + ?????? */
+/* Enable TIM1 three-phase complementary PWM outputs */
 void FOC_MotorPwmStart(void)
 {
-    TIM1->CCER |= 0x5555;                          /* ?? CH1/CH2/CH3 ? CCxE ? CCxNE */
+    TIM1->CCER |= 0x5555;                          /* enable CH1/CH2/CH3 CCxE and CCxNE */
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
@@ -23,10 +23,10 @@ void FOC_MotorPwmStart(void)
     HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
 }
 
-/* ???? PWM ?? */
+/* Disable three-phase PWM outputs */
 void FOC_MotorPwmStop(void)
 {
-    TIM1->CCER &= 0xAAAA;                          /* ?? CH1/CH2/CH3 ? CCxE ? CCxNE */
+    TIM1->CCER &= 0xAAAA;                          /* disable CH1/CH2/CH3 CCxE and CCxNE */
     HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
     HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
@@ -35,24 +35,23 @@ void FOC_MotorPwmStop(void)
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
 }
 
-/* Alpha/Beta ?? -> ??? SVPWM -> TIM1 ????? */
+/* Convert alpha/beta voltage to seven-segment SVPWM and write TIM1 CCRs */
 void FOC_SvpwmUpdate(float ualpha, float ubeta)
 {
     float u1, u2, u3;
     float Ta, Tb, Tc;
     uint8_t sector = 3;
 
-    /* ? Clarke?Alpha/Beta ???????????? */
     u1 = ubeta;
     u2 = ubeta * 0.5f + ualpha * 0.8660254f;
     u3 = u2 - u1;
 
-    /* ???? */
+    /* Determine sector */
     sector = (u2 > 0) ? (sector - 1) : sector;
     sector = (u3 > 0) ? (sector - 1) : sector;
     sector = (u1 < 0) ? (7 - sector) : sector;
 
-    /* ???????????? Ta/Tb/Tc */
+    /* Calculate three-phase modulation waves Ta/Tb/Tc */
     if ((sector == 1) || (sector == 4))
     {
         Ta = u2;
@@ -78,7 +77,7 @@ void FOC_SvpwmUpdate(float ualpha, float ubeta)
         Tc = 0.0f;
     }
 
-    /* ??? -> ? 50% ??????? CCR ? */
+    /* Map per-unit voltage to CCR centered at 50 percent duty */
     TIM1->CCR1 = (uint16_t)(Ta * FOC_SVPWM_KM_BACKW * FOC_TIM1_PERIOD_HALF + FOC_TIM1_PERIOD_HALF);
     TIM1->CCR2 = (uint16_t)(Tb * FOC_SVPWM_KM_BACKW * FOC_TIM1_PERIOD_HALF + FOC_TIM1_PERIOD_HALF);
     TIM1->CCR3 = (uint16_t)(Tc * FOC_SVPWM_KM_BACKW * FOC_TIM1_PERIOD_HALF + FOC_TIM1_PERIOD_HALF);
@@ -89,7 +88,7 @@ void FOC_OpenLoop_Init(void)
     s_openloop_enabled = 0;
     s_lock_axis = 0;
     s_theta_deg = 0.0f;
-    FOC_SvpwmUpdate(0.0f, 0.0f);   /* ????????? */
+    FOC_SvpwmUpdate(0.0f, 0.0f);   /* start with zero voltage vector */
 }
 
 void FOC_OpenLoop_Enable(void)
@@ -108,7 +107,7 @@ void FOC_OpenLoop_Disable(void)
         FOC_MotorPwmStop();
         s_openloop_enabled = 0;
         s_theta_deg = 0.0f;
-        FOC_SvpwmUpdate(0.0f, 0.0f);   /* ????? */
+        FOC_SvpwmUpdate(0.0f, 0.0f);   /* return to zero vector */
     }
 }
 
@@ -122,7 +121,7 @@ void FOC_OpenLoop_ToggleAxis(void)
     s_lock_axis = (s_lock_axis == 0) ? 1 : 0;
 }
 
-/* ?? 1ms ????????????????????????????? */
+/* Call every 1 ms: output zero vector when disabled, otherwise lock or rotate */
 void FOC_OpenLoop_Run(void)
 {
     if (s_openloop_enabled == 0)
@@ -134,11 +133,11 @@ void FOC_OpenLoop_Run(void)
 #if FOC_STAGE1_LOCK_TEST
     if (s_lock_axis == 0)
     {
-        FOC_SvpwmUpdate(FOC_OPENLOOP_U_AMP, 0.0f);   /* ? ??? */
+        FOC_SvpwmUpdate(FOC_OPENLOOP_U_AMP, 0.0f);   /* lock to alpha axis */
     }
     else
     {
-        FOC_SvpwmUpdate(0.0f, FOC_OPENLOOP_U_AMP);   /* ? ??? */
+        FOC_SvpwmUpdate(0.0f, FOC_OPENLOOP_U_AMP);   /* lock to beta axis */
     }
 #else
     {

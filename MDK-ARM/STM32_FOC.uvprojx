@@ -430,7 +430,7 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
             </File>
-                      <File>
+            <File>
               <FileName>foc.c</FileName>
               <FileType>1</FileType>
               <FilePath>../MotorFoc/foc.c</FilePath>
@@ -440,7 +440,7 @@
               <FileType>1</FileType>
               <FilePath>../App/key_app.c</FilePath>
             </File>
-</Files>
+          </Files>
         </Group>
         <Group>
           <GroupName>Drivers/STM32F4xx_HAL_Driver</GroupName>
