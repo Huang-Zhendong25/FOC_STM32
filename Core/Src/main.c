@@ -29,6 +29,7 @@
 
 #include "foc.h"
 #include "foc_current.h"
+#include "foc_speed.h"
 #include "key_app.h"
 #include "current_sense.h"
 #include "clarke.h"
@@ -137,11 +138,11 @@ int main(void)
   Encoder_SetZero(&g_encoder);
   FOC_OpenLoop_Disable();
 
-  /* Switch injected ADC to interrupt mode for the fast current loop */
-  CurrentSense_StartInjectedIT();
+  /* Injected ADC remains in polling mode; current loop reads it in TIM1 update interrupt */
 
-  /* Initialize current-loop PI controllers */
+  /* Initialize current-loop and speed-loop controllers */
   FOC_Current_Init();
+  FOC_Speed_Init();
 
   /* Initialize keys; PWM stays disabled until KEY1 is pressed */
   KEY_AppInit();
@@ -160,37 +161,37 @@ int main(void)
 
     KEY_AppScan();
 
-    /* KEY1: enable current loop */
-    if ((KEY_AppGetSingleClick(KEY_APP_KEY1) == 1U) && (FOC_Current_IsEnabled() == 0U))
+    /* KEY1: enable speed loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY1) == 1U) && (FOC_Speed_IsEnabled() == 0U))
     {
-        FOC_Current_Enable();
+        FOC_Speed_Enable();
     }
 
-    /* KEY2: disable current loop */
-    if ((KEY_AppGetSingleClick(KEY_APP_KEY2) == 1U) && (FOC_Current_IsEnabled() == 1U))
+    /* KEY2: disable speed loop */
+    if ((KEY_AppGetSingleClick(KEY_APP_KEY2) == 1U) && (FOC_Speed_IsEnabled() == 1U))
     {
-        FOC_Current_Disable();
+        FOC_Speed_Disable();
     }
 
-    /* KEY3: single click increases Iq, double click decreases Iq */
+    /* KEY3: single click increases speed target, double click decreases it */
     if (KEY_AppGetSingleClick(KEY_APP_KEY3) == 1U)
     {
-        FOC_Current_IncreaseIq();
+        FOC_Speed_IncreaseTarget();
     }
     if (KEY_AppGetDoubleClick(KEY_APP_KEY3) == 1U)
     {
-        FOC_Current_DecreaseIq();
+        FOC_Speed_DecreaseTarget();
     }
 
     /* Read encoder angle and speed at 1 kHz for debug and VOFA */
     Encoder_Update(&g_encoder);
 
-    /* Send current, voltage, angle and speed data to VOFA+ without blocking the control loop */
+    /* Send data to VOFA+ without blocking the control loop */
     VOFA_Task(&g_current, &g_encoder);
 
     HAL_Delay(1);
+  }
   /* USER CODE END 3 */
-}
 }
 
 /**

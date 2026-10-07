@@ -1,4 +1,5 @@
 #include "foc_current.h"
+#include "foc_speed.h"
 #include "foc.h"
 #include "tim.h"
 #include "current_sense.h"
@@ -58,6 +59,19 @@ void FOC_Current_Disable(void)
 uint8_t FOC_Current_IsEnabled(void)
 {
     return s_enabled;
+}
+
+void FOC_Current_SetIqRef(float iq_ref)
+{
+    if (iq_ref > FOC_CURRENT_IQ_MAX)
+    {
+        iq_ref = FOC_CURRENT_IQ_MAX;
+    }
+    else if (iq_ref < -FOC_CURRENT_IQ_MAX)
+    {
+        iq_ref = -FOC_CURRENT_IQ_MAX;
+    }
+    s_iq_ref = iq_ref;
 }
 
 void FOC_Current_IncreaseIq(void)
@@ -123,10 +137,11 @@ float FOC_Current_GetIqRef(void) { return s_iq_ref; }
 float FOC_Current_GetVd(void) { return s_vd; }
 float FOC_Current_GetVq(void) { return s_vq; }
 
-void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef *hadc)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    if (hadc->Instance == ADC1)
+    if (htim == &htim1)
     {
+        FOC_Speed_Run();
         FOC_Current_Run();
     }
 }

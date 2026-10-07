@@ -21,6 +21,10 @@ void FOC_MotorPwmStart(void)
     HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
     HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+
+    /* Enable TIM1 update interrupt for the fast current loop */
+    __HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
+    __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
 }
 
 /* Disable three-phase PWM outputs */
@@ -33,6 +37,10 @@ void FOC_MotorPwmStop(void)
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
+
+    /* Disable TIM1 update interrupt */
+    __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_UPDATE);
+    __HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
 }
 
 /* Convert alpha/beta voltage to seven-segment SVPWM and write TIM1 CCRs */

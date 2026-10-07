@@ -11,6 +11,7 @@ void FOC_Current_Init(void);
 void FOC_Current_Enable(void);
 void FOC_Current_Disable(void);
 uint8_t FOC_Current_IsEnabled(void);
+void FOC_Current_SetIqRef(float iq_ref);
 void FOC_Current_IncreaseIq(void);
 void FOC_Current_DecreaseIq(void);
 void FOC_Current_Run(void);

@@ -475,6 +475,11 @@
               <FileType>1</FileType>
               <FilePath>../MotorFoc/foc_current.c</FilePath>
             </File>
+            <File>
+              <FileName>foc_speed.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/foc_speed.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
