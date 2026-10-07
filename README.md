@@ -16,6 +16,8 @@
 foc_stm32/
 ├── Core/          CubeMX 生成的外设初始化和主程序
 ├── Drivers/       STM32F4 HAL 库和 CMSIS
+├── App/           应用层（按键功能）
+├── MotorFoc/      FOC 算法与控制（SVPWM、开环控制）
 ├── MDK-ARM/       Keil 工程文件
 ├── STM32_FOC.ioc  CubeMX 工程配置
 └── README.md
@@ -85,11 +87,17 @@ foc_stm32/
 | 开环电压幅值 | 1.0V | 可在宏中调整 |
 | 开环电频率 | 1Hz | 可在宏中调整 |
 
+#### 代码分布
+
+- `Core/Src/main.c`：只负责外设初始化和按键到控制模式的调度。
+- `MotorFoc/foc.c/.h`：SVPWM 计算、TIM1 PWM 使能/关闭、开环锁轴与旋转控制。
+- `App/key_app.c/.h`：KEY1/2/3 的初始化、消抖扫描和事件获取。
+
 #### 如何测试阶段 1
 
 锁轴测试：
 
-1. 保持 `STAGE1_LOCK_TEST` 为 1。
+1. 保持 `MotorFoc/foc.h` 中的 `FOC_STAGE1_LOCK_TEST` 为 1。
 2. 编译烧录。
 3. 按 KEY1，电机应被吸住并保持。
 4. 按 KEY3，观察转子在 α 轴和 β 轴锁定位置之间切换。
@@ -97,7 +105,7 @@ foc_stm32/
 
 开环旋转测试：
 
-1. 将 `STAGE1_LOCK_TEST` 改为 0。
+1. 将 `MotorFoc/foc.h` 中的 `FOC_STAGE1_LOCK_TEST` 改为 0。
 2. 重新编译烧录。
 3. 按 KEY1，电机开始低速旋转。
 4. 按 KEY2 停止。

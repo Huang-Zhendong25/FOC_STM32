@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc;../MotorFoc;../App;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -430,7 +430,17 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
             </File>
-          </Files>
+                      <File>
+              <FileName>foc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MotorFoc/foc.c</FilePath>
+            </File>
+            <File>
+              <FileName>key_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/key_app.c</FilePath>
+            </File>
+</Files>
         </Group>
         <Group>
           <GroupName>Drivers/STM32F4xx_HAL_Driver</GroupName>
